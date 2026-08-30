@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HINDUJA MUN 2026 - Chit Portal</title>
+  <style>
+    :root {
+      --navy-primary: #0f172a;
+      --navy-hover: #1e293b;
+      --slate-dark: #334155;
+      --slate-muted: #64748b;
+      --bg-surface: #f1f5f9;
+      --card-bg: #ffffff;
+      --border-color: #cbd5e1;
+      --border-light: #e2e8f0;
+      --text-main: #0f172a;
+    }
+    
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+      background: var(--bg-surface); 
+      margin: 0; 
+      padding: 20px 15px; 
+      color: var(--text-main); 
+      line-height: 1.5;
+    }
+    
+    .container { max-width: 620px; margin: 0 auto; }
+
+    .box-card { 
+      background: var(--card-bg); 
+      padding: 24px; 
+      border-radius: 6px; 
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); 
+      margin-bottom: 20px; 
+      border: 1px solid var(--border-color); 
+    }
+
+    h2 { margin: 0 0 16px 0; color: var(--text-main); text-align: center; font-size: 20px; font-weight: 700; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; }
+    h3 { margin: 0 0 16px 0; font-size: 15px; font-weight: 700; color: var(--navy-primary); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border-light); padding-bottom: 10px; }
+
+    label { font-weight: 600; display: block; margin: 16px 0 6px; color: var(--slate-dark); font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+    select, input, textarea { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 4px; box-sizing: border-box; font-size: 15px; font-family: inherit; background: #f8fafc; color: var(--text-main); }
+    select:focus, input:focus, textarea:focus { outline: none; border-color: var(--navy-primary); background: #ffffff; }
+    textarea { resize: vertical; height: 85px; }
+
+    button { width: 100%; background: var(--navy-primary); color: white; padding: 13px; border: none; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 16px; transition: background 0.15s; text-transform: uppercase; letter-spacing: 0.5px; }
+    button:hover { background: var(--navy-hover); }
+    button:disabled { background: #94a3b8 !important; cursor: not-allowed !important; }
+    .hidden { display: none !important; }
+
+    .cancel-question-btn { background: #f8fafc; color: #b91c1c; border: 1px solid #fca5a5; margin-top: 10px; padding: 11px; font-size: 13px; }
+    .cancel-question-btn:hover { background: #fef2f2; }
+
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .stat-box { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 6px; padding: 14px 10px; text-align: center; }
+    .stat-num { font-size: 22px; font-weight: 700; display: block; margin-bottom: 4px; color: var(--navy-primary); font-family: monospace; }
+    .stat-label { font-size: 11px; font-weight: 600; color: var(--slate-muted); text-transform: uppercase; letter-spacing: 0.5px; display: block; }
+
+    .chit-card { background: #ffffff; border: 1px solid var(--border-color); border-left: 4px solid var(--navy-primary); padding: 16px; margin-bottom: 12px; border-radius: 4px; }
+    .chit-card.reply-card { background: #f8fafc; border-left: 4px solid var(--slate-dark); }
+    .chit-card.sent-card { background: #f8fafc; border-left: 4px solid var(--slate-muted); }
+    
+    .chit-meta { font-size: 12px; color: var(--slate-dark); margin-bottom: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; }
+    .chit-body { font-size: 15px; line-height: 1.5; color: var(--text-main); background: #f8fafc; padding: 12px; border: 1px solid var(--border-light); border-radius: 4px; }
+
+    .refresh-btn { background: var(--slate-dark); margin-bottom: 20px; padding: 12px; }
+    .refresh-btn:hover { background: var(--navy-primary); }
+    
+    .toggle-history-btn { background: var(--slate-muted); margin-bottom: 15px; }
+    .toggle-history-btn:hover { background: var(--slate-dark); }
+
+    .reply-trigger-btn { width: 100%; background: #ffffff; color: var(--navy-primary); border: 1px solid var(--navy-primary); padding: 10px; font-size: 13px; margin-top: 12px; border-radius: 4px; font-weight: 600; }
+    .reply-trigger-btn:hover { background: var(--navy-primary); color: white; }
+    .inline-reply-box { background: #f8fafc; border: 1px solid var(--border-color); border-left: 3px solid var(--navy-primary); padding: 16px; border-radius: 4px; margin-top: 12px; }
+    .inline-reply-box label { color: var(--navy-primary); margin-top: 0; }
+    .inline-reply-box button.send-reply-btn { background: var(--navy-primary); margin-top: 10px; padding: 12px; }
+    .inline-reply-box button.send-reply-btn:hover { background: var(--navy-hover); }
+    .inline-reply-box button.cancel-reply-btn { background: transparent; color: #b91c1c; border: 1px solid #fca5a5; margin-top: 8px; padding: 10px; }
+    .inline-reply-box button.cancel-reply-btn:hover { background: #fef2f2; }
+
+    #loginError { color: #b91c1c; text-align: center; margin-top: 15px; font-size: 13px; font-weight: 600; background: #fef2f2; border: 1px solid #fca5a5; padding: 12px; border-radius: 4px; display: none; }
+    
+    .emblem-box { width: 85px; height: 85px; object-fit: contain; margin: 0 auto 14px auto; display: block; }
+    
+    .executive-ribbon {
+      background: #ffffff;
+      border: 1px solid var(--border-color);
+      border-left: 4px solid var(--navy-primary);
+      padding: 14px 18px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+    }
+    .ribbon-left { display: flex; align-items: center; gap: 12px; }
+    .ribbon-title { font-size: 11px; font-weight: 700; color: var(--slate-muted); text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 2px; }
+    .ribbon-country { font-size: 15px; font-weight: 800; color: var(--navy-primary); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; }
+    
+    /* FLOOR STATUS BADGE STYLING */
+    .floor-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .floor-open { color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; }
+    .floor-closed { color: #b91c1c; background: #fef2f2; border: 1px solid #fca5a5; }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+    .floor-open .status-dot { background: #10b981; }
+    .floor-closed .status-dot { background: #ef4444; }
+
+    .country-flag { 
+      width: 24px; height: 16px; object-fit: cover; border-radius: 2px; border: 1px solid rgba(0,0,0,0.15); 
+      display: inline-block; vertical-align: middle; margin-right: 8px !important; flex-shrink: 0; 
+    }
+    .ribbon-country .country-flag { width: 28px; height: 18px; margin-right: 10px !important; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  
+  <!-- LOGIN SCREEN -->
+  <div id="loginScreen" class="box-card">
+    <div style="text-align: center; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color);">
+      <img class="emblem-box" src="https://lh3.googleusercontent.com/d/1cWam7znTn1XI66vh3xSY-PHMNWzObcqg" alt="UNHRC Emblem">
+      <h1 style="color: var(--navy-primary); margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.5px;">HINDUJA MUN 2026</h1>
+      <div style="color: var(--slate-dark); font-weight: 700; font-size: 13px; text-transform: uppercase; margin-top: 4px; letter-spacing: 0.5px;">United Nations Human Rights Council</div>
+      <div style="color: var(--slate-muted); font-weight: 600; font-size: 11px; text-transform: uppercase; margin-top: 12px; border: 1px solid var(--border-color); display: inline-block; padding: 4px 12px; border-radius: 3px; background: #f8fafc;">Chit Portal</div>
+    </div>
+    
+    <label>Step 1: Select Your Country</label>
+    <select id="loginPortfolio"><option>Loading countries...</option></select>
+    
+    <label>Step 2: Enter Your 4-Digit PIN</label>
+    <input type="password" id="loginPin" placeholder="e.g. 1042" pattern="[0-9]*" inputmode="numeric">
+    
+    <button onclick="attemptLogin()">LOG IN TO COMMITTEE</button>
+    <div id="loginError"></div>
+  </div>
+
+  <!-- PORTAL SCREEN -->
+  <div id="portalScreen" class="hidden">
+    
+    <div class="box-card" style="padding: 16px; margin-bottom: 15px; background: #ffffff; text-align: center; border-color: var(--border-color);">
+      <div style="display: flex; align-items: center; justify-content: center; gap: 14px;">
+        <img style="width: 48px; height: 48px; object-fit: contain; flex-shrink: 0;" src="https://lh3.googleusercontent.com/d/1cWam7znTn1XI66vh3xSY-PHMNWzObcqg" alt="UNHRC Emblem">
+        <div style="text-align: left;">
+          <div style="font-size: 18px; font-weight: 800; color: var(--navy-primary); line-height: 1.2;">HINDUJA MUN 2026</div>
+          <div style="font-size: 12px; font-weight: 700; color: var(--slate-dark); text-transform: uppercase; letter-spacing: 0.5px;">United Nations Human Rights Council</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXECUTIVE IDENTITY RIBBON WITH DYNAMIC FLOOR STATUS -->
+    <div class="executive-ribbon" id="portalHeading">
+      <div class="ribbon-left">
+        <div>
+          <span class="ribbon-title">Authenticated Portfolio</span>
+          <span class="ribbon-country" id="ribbonCountryText">DELEGATE</span>
+        </div>
+      </div>
+      <div id="floorBadgeContainer" class="floor-badge floor-open">
+        <span class="status-dot"></span> <span id="floorStatusText">Floor: Open</span>
+      </div>
+    </div>
+    
+    <!-- LIVE STATS SCORECARD -->
+    <div class="stats-grid">
+      <div class="stat-box">
+        <span class="stat-num" id="statQuestions">0</span>
+        <span class="stat-label">POIs Sent</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-num" id="statReplies">0</span>
+        <span class="stat-label">Replies Sent</span>
+      </div>
+      <div class="stat-box">
+        <span class="stat-num" id="statReceived">0</span>
+        <span class="stat-label">Total Received</span>
+      </div>
+    </div>
+    
+    <!-- BOX 1: SENDING NEW POIS (LOCKS AUTOMATICALLY IF FLOOR IS CLOSED) -->
+    <div class="box-card" id="sendSection">
+      <h3>Ask a New POI</h3>
+      
+      <div id="floorClosedNotice" class="hidden" style="margin-bottom: 15px; padding: 12px; background: #fef2f2; border: 1px solid #fca5a5; border-radius: 4px; color: #b91c1c; font-size: 13px; font-weight: 700; text-align: center;">
+        THE FLOOR FOR CHITS IS CURRENTLY CLOSED BY THE EXECUTIVE BOARD.
+      </div>
+
+      <label>Step 1: Who is this POI for?</label>
+      <select id="chitRecipient"></select>
+      
+      <label>Step 2: Type your POI:</label>
+      <textarea id="chitMessage" placeholder="Type your POI here..."></textarea>
+      
+      <button id="sendBtn" onclick="handleSendNewQuestion()">SEND</button>
+      <button class="cancel-question-btn" onclick="clearNewQuestion()">CANCEL / CLEAR POI</button>
+    </div>
+    
+    <!-- BOX 2: INBOX -->
+    <div class="box-card">
+      <h3>Your Inbox (Received Messages)</h3>
+      <button class="refresh-btn" onclick="loadDashboard()">REFRESH INBOX & STATS</button>
+      <div id="inboxContainer">Loading messages...</div>
+    </div>
+
+    <!-- BOX 3: SENT HISTORY OUTBOX -->
+    <div class="box-card">
+      <h3>Your Outbox (Sent History)</h3>
+      <button class="toggle-history-btn" onclick="toggleSentHistory()" id="historyToggleBtn">VIEW WHAT YOU SENT (0 items)</button>
+      <div id="sentHistoryContainer" class="hidden"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let activeUser = "";
+
+  const countryFlagMap = {
+    "united states": "us", "usa": "us", "united kingdom": "gb", "uk": "gb", "britain": "gb",
+    "russia": "ru", "russian federation": "ru", "china": "cn", "france": "fr",
+    "india": "in", "germany": "de", "japan": "jp", "brazil": "br",
+    "south africa": "za", "nigeria": "ng", "egypt": "eg", "saudi arabia": "sa",
+    "iran": "ir", "israel": "il", "ukraine": "ua", "pakistan": "pk",
+    "north korea": "kp", "dprk": "kp", "south korea": "kr", "republic of korea": "kr",
+    "australia": "au", "canada": "ca", "mexico": "mx", "italy": "it",
+    "spain": "es", "turkey": "tr", "turkiye": "tr", "syria": "sy",
+    "iraq": "iq", "afghanistan": "af", "poland": "pl", "indonesia": "id",
+    "argentina": "ar", "colombia": "co", "venezuela": "ve", "cuba": "cu",
+    "vietnam": "vn", "thailand": "th", "philippines": "ph", "malaysia": "my",
+    "singapore": "sg", "switzerland": "ch", "sweden": "se", "norway": "no",
+    "finland": "fi", "netherlands": "nl", "belgium": "be", "austria": "at",
+    "greece": "gr", "portugal": "pt", "ireland": "ie", "denmark": "dk",
+    "new zealand": "nz", "bangladesh": "bd", "sri lanka": "lk", "myanmar": "mm",
+    "sudan": "sd", "south sudan": "ss", "ethiopia": "et", "kenya": "ke",
+    "morocco": "ma", "algeria": "dz", "tunisia": "tn", "libya": "ly",
+    "lebanon": "lb", "jordan": "jo", "yemen": "ye", "qatar": "qa",
+    "united arab emirates": "ae", "uae": "ae", "drc": "cd", "congo": "cd", "somalia": "so"
+  };
+
+  function getFlagImg(countryName) {
+    if (!countryName) return "";
+    let clean = countryName.toString().toLowerCase().trim();
+    
+    for (let key in countryFlagMap) {
+      if (clean.includes(key)) {
+        let code = countryFlagMap[key];
+        return `<img src="https://flagcdn.com/w40/${code}.png" class="country-flag" alt="${countryName}">`;
+      }
+    }
+    if (clean.includes("executive") || clean.includes("board")) {
+      return `<img src="https://lh3.googleusercontent.com/d/1cWam7znTn1XI66vh3xSY-PHMNWzObcqg" class="country-flag" style="border:none;" alt="EB">`;
+    }
+    return "";
+  }
+
+  window.onload = function() {
+    google.script.run.withSuccessHandler(function(list) {
+      let loginSelect = document.getElementById('loginPortfolio');
+      let recipientSelect = document.getElementById('chitRecipient');
+      
+      loginSelect.innerHTML = "";
+      recipientSelect.innerHTML = ""; 
+      
+      list.forEach(function(item) {
+        loginSelect.innerHTML += `<option value="${item}">${item}</option>`;
+        if (item.toString().toLowerCase() !== "executive board") {
+          recipientSelect.innerHTML += `<option value="${item}">${item}</option>`;
+        }
+      });
+    }).getPortfolioList();
+  };
+
+  function attemptLogin() {
+    let portfolio = document.getElementById('loginPortfolio').value;
+    let pin = document.getElementById('loginPin').value;
+    let errBox = document.getElementById('loginError');
+    errBox.style.display = "none";
+
+    google.script.run.withSuccessHandler(function(isValid) {
+      if (isValid) {
+        activeUser = portfolio;
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('portalScreen').classList.remove('hidden');
+        document.getElementById('ribbonCountryText').innerHTML = `${getFlagImg(activeUser)}<span>${activeUser.toUpperCase()}</span>`;
+        loadDashboard();
+      } else {
+        errBox.innerText = "Incorrect PIN. Please try again.";
+        errBox.style.display = "block";
+      }
+    }).validateLogin(portfolio, pin);
+  }
+
+  function clearNewQuestion() {
+    document.getElementById('chitMessage').value = "";
+    document.getElementById('chitRecipient').selectedIndex = 0;
+  }
+
+  function loadDashboard() {
+    let refreshBtn = document.querySelector('.refresh-btn');
+    refreshBtn.disabled = true;
+    refreshBtn.innerText = "Checking for messages...";
+
+    google.script.run.withSuccessHandler(function(data) {
+      // 1. UPDATE FLOOR STATUS BADGE & LOCK FORM IF CLOSED
+      let badgeContainer = document.getElementById('floorBadgeContainer');
+      let statusText = document.getElementById('floorStatusText');
+      let closedNotice = document.getElementById('floorClosedNotice');
+      let sendBtn = document.getElementById('sendBtn');
+      let msgBox = document.getElementById('chitMessage');
+      let recipientSelect = document.getElementById('chitRecipient');
+
+      if (data.floorStatus === "CLOSED") {
+        badgeContainer.className = "floor-badge floor-closed";
+        statusText.innerText = "Floor: Closed";
+        closedNotice.classList.remove('hidden');
+        sendBtn.disabled = true;
+        sendBtn.innerText = "FLOOR CLOSED";
+        msgBox.disabled = true;
+        recipientSelect.disabled = true;
+      } else {
+        badgeContainer.className = "floor-badge floor-open";
+        statusText.innerText = "Floor: Open";
+        closedNotice.classList.add('hidden');
+        sendBtn.disabled = false;
+        sendBtn.innerText = "SEND";
+        msgBox.disabled = false;
+        recipientSelect.disabled = false;
+      }
+
+      // 2. Update Stats
+      document.getElementById('statQuestions').innerText = data.stats.questionsSent;
+      document.getElementById('statReplies').innerText = data.stats.repliesSent;
+      document.getElementById('statReceived').innerText = data.stats.totalReceived;
+      
+      document.getElementById('historyToggleBtn').innerText = `VIEW WHAT YOU SENT (${data.sentHistory.length} items)`;
+
+      let inboxBox = document.getElementById('inboxContainer');
+      if (data.inbox.length === 0) {
+        inboxBox.innerHTML = "<p style='color:#64748b; text-align:center; font-size:14px; padding:20px 0;'>No messages in your inbox right now.</p>";
+      } else {
+        inboxBox.innerHTML = "";
+        data.inbox.forEach(function(chit, index) {
+          let safeSender = chit.sender.replace(/'/g, "\\'");
+          let cardClass = chit.isReply ? "chit-card reply-card" : "chit-card";
+          let badge = chit.isReply ? "ANSWER RECEIVED FROM:" : "POI RECEIVED FROM:";
+          
+          let replyBoxId = `replyBox_${index}`;
+          let replyTextId = `replyText_${index}`;
+          let sendReplyBtnId = `sendReplyBtn_${index}`;
+          
+          let inlineReplyHtml = "";
+          
+          if (!chit.isReply) {
+            if (chit.hasBeenAnswered) {
+              inlineReplyHtml = `
+                <div style="margin-top: 12px; padding: 10px 14px; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 4px; color: #047857; font-size: 13px; font-weight: 600;">
+                  ANSWER DISPATCHED: "${chit.answerText}"
+                </div>`;
+            } else {
+              // If floor is closed, disable reply buttons too!
+              if (data.floorStatus === "CLOSED") {
+                inlineReplyHtml = `
+                  <div style="margin-top: 12px; padding: 8px; background: #fef2f2; border: 1px solid #fca5a5; border-radius: 4px; color: #b91c1c; font-size: 12px; font-weight: 600; text-align: center;">
+                    REPLIES LOCKED (FLOOR CLOSED)
+                  </div>`;
+              } else {
+                inlineReplyHtml = `
+                  <button class="reply-trigger-btn" onclick="showReplyBox('${replyBoxId}')">CLICK HERE TO REPLY TO THIS POI</button>
+                  <div id="${replyBoxId}" class="inline-reply-box hidden">
+                    <label>Replying to ${chit.sender}:</label>
+                    <textarea id="${replyTextId}" placeholder="Type your answer to ${chit.sender} here..."></textarea>
+                    <button id="${sendReplyBtnId}" class="send-reply-btn" onclick="handleSendInlineReply('${safeSender}', ${chit.rowNumber}, '${replyTextId}', '${sendReplyBtnId}')">SEND REPLY TO ${chit.sender.toUpperCase()}</button>
+                    <button class="cancel-reply-btn" onclick="hideReplyBox('${replyBoxId}')">Cancel</button>
+                  </div>`;
+              }
+            }
+          }
+
+          inboxBox.innerHTML += `
+            <div class="${cardClass}">
+              <div class="chit-meta">
+                <span style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">${badge}&nbsp;<strong style="color:#0f172a; display:inline-flex; align-items:center;">${getFlagImg(chit.sender)}<span>${chit.sender}</span></strong></span>
+                <span style="color:#64748b; font-weight:normal;">${chit.timestamp}</span>
+              </div>
+              <div class="chit-body">${chit.message}</div>
+              ${inlineReplyHtml}
+            </div>`;
+        });
+      }
+
+      let outboxBox = document.getElementById('sentHistoryContainer');
+      if (data.sentHistory.length === 0) {
+        outboxBox.innerHTML = "<p style='color:#64748b; text-align:center; font-size:14px; padding:12px 0;'>You haven't sent any POIs or replies yet.</p>";
+      } else {
+        outboxBox.innerHTML = "";
+        data.sentHistory.forEach(function(item) {
+          let badge = item.type === "QUESTION" ? "POI SENT TO:" : "REPLY SENT TO:";
+          outboxBox.innerHTML += `
+            <div class="chit-card sent-card">
+              <div class="chit-meta">
+                <span style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">${badge}&nbsp;<strong style="color:#0f172a; display:inline-flex; align-items:center;">${getFlagImg(item.to)}<span>${item.to}</span></strong></span>
+                <span style="color:#64748b; font-weight:normal;">${item.timestamp}</span>
+              </div>
+              <div class="chit-body">${item.text}</div>
+            </div>`;
+        });
+      }
+      
+      let countdown = 3;
+      refreshBtn.innerText = `Please wait (${countdown}s)...`;
+      let timer = setInterval(() => {
+        countdown--;
+        if (countdown > 0) { refreshBtn.innerText = `Please wait (${countdown}s)...`; } 
+        else { clearInterval(timer); refreshBtn.disabled = false; refreshBtn.innerText = "REFRESH INBOX & STATS"; }
+      }, 1000);
+
+    }).getDelegateDashboardData(activeUser);
+  }
+
+  function toggleSentHistory() {
+    let container = document.getElementById('sentHistoryContainer');
+    if (container.classList.contains('hidden')) {
+      container.classList.remove('hidden');
+    } else {
+      container.classList.add('hidden');
+    }
+  }
+
+  function showReplyBox(boxId) { document.getElementById(boxId).classList.remove('hidden'); }
+  function hideReplyBox(boxId) { document.getElementById(boxId).classList.add('hidden'); }
+
+  function handleSendNewQuestion() {
+    let recipient = document.getElementById('chitRecipient').value;
+    let message = document.getElementById('chitMessage').value;
+    let sendBtn = document.getElementById('sendBtn');
+    
+    if (!message.trim()) { alert("Please type a POI first!"); return; }
+    if (recipient === activeUser) { alert("You cannot send a message to your own country!"); return; }
+
+    sendBtn.disabled = true;
+    sendBtn.innerText = "SENDING POI...";
+
+    google.script.run.withSuccessHandler(function() {
+      clearNewQuestion(); 
+      alert("New POI sent successfully!");
+      
+      let countdown = 3;
+      sendBtn.innerText = `Sent! Cooldown (${countdown}s)...`;
+      let timer = setInterval(() => {
+        countdown--;
+        if (countdown > 0) { sendBtn.innerText = `Sent! Cooldown (${countdown}s)...`; } 
+        else { clearInterval(timer); sendBtn.disabled = false; sendBtn.innerText = "SEND"; loadDashboard(); }
+      }, 1000);
+    }).withFailureHandler(function(err) {
+      alert("Error: " + err.message);
+      loadDashboard();
+    }).sendChit(activeUser, recipient, message, null);
+  }
+
+  function handleSendInlineReply(recipient, rowNumber, textAreaId, btnId) {
+    let message = document.getElementById(textAreaId).value;
+    let sendBtn = document.getElementById(btnId);
+    if (!message.trim()) { alert("Please type an answer first!"); return; }
+
+    sendBtn.disabled = true;
+    sendBtn.innerText = "SENDING REPLY...";
+
+    google.script.run.withSuccessHandler(function() {
+      alert("Reply sent successfully!");
+      loadDashboard(); 
+    }).withFailureHandler(function(err) {
+      alert("Error: " + err.message);
+      loadDashboard();
+    }).sendChit(activeUser, recipient, message, rowNumber);
+  }
+</script>
+
+</body>
+</html>
