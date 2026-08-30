@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    :root {
+      --navy: #0f172a;
+      --red: #d93025;
+      --border: #cbd5e1;
+      --bg: #f8fafc;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; color: #1e293b; background: #ffffff; text-align: center; }
+    h3 { margin: 0 0 16px 0; color: var(--navy); font-size: 15px; border-bottom: 2px solid var(--navy); padding-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    
+    label { font-size: 11px; font-weight: bold; color: #475569; text-transform: uppercase; display: block; margin-top: 12px; margin-bottom: 4px; letter-spacing: 0.5px; text-align: left; }
+    select, input[type="file"], input[type="text"] { width: 100%; padding: 9px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; background: var(--bg); font-weight: 600; color: var(--navy); box-sizing: border-box; }
+    select:focus, input[type="file"]:focus, input[type="text"]:focus { outline: none; border-color: var(--navy); background: #fff; }
+    
+    #uploadBtn { width: 100%; background: var(--navy); color: white; padding: 14px; border: none; border-radius: 6px; font-weight: 800; font-size: 14px; cursor: pointer; margin-top: 20px; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: background 0.15s; }
+    #uploadBtn:hover { background: #1e293b; }
+    #uploadBtn:disabled { background: #cbd5e1; cursor: not-allowed; }
+    
+    #status { margin-top: 16px; font-size: 12px; font-weight: bold; color: #64748b; }
+  </style>
+</head>
+<body>
+
+  <h3>Document Uploader</h3>
+
+  <label>Step 1: Select Category</label>
+  <select id="tableSelect" onchange="handleCategoryChange()">
+    <option value="1">Draft Resolution</option>
+    <option value="2">Additional Document 1</option>
+    <option value="3">Additional Document 2</option>
+  </select>
+
+  <!-- Custom Name Container (Automatically hides for DRs, appears for Additional Documents) -->
+  <div id="customNameContainer" style="display: none;">
+    <label>Custom Document Name (Optional)</label>
+    <input type="text" id="customNameInput" placeholder="e.g., WORKING PAPER 1">
+  </div>
+
+  <label>Step 2: Select Author 1 (Required)</label>
+  <!-- Searchable Input with Live Autocomplete Recommendations -->
+  <input type="text" id="author1" list="countryDataList" placeholder="Type to search Author 1..." autocomplete="off">
+
+  <label>Select Author 2 (Optional)</label>
+  <input type="text" id="author2" list="countryDataList" placeholder="Type to search Author 2..." autocomplete="off">
+
+  <label>Select Author 3 (Optional)</label>
+  <input type="text" id="author3" list="countryDataList" placeholder="Type to search Author 3..." autocomplete="off">
+
+  <!-- Shared Autocomplete Datalist for all 3 Authors -->
+  <datalist id="countryDataList"></datalist>
+
+  <label>Step 3: Select PDF File</label>
+  <input type="file" id="fileInput" accept=".pdf,application/pdf">
+
+  <button id="uploadBtn" onclick="handleUpload()">Upload Document</button>
+
+  <div id="status">Ready to upload file.</div>
+
+  <script>
+    window.onload = function() { 
+      loadCountries(); 
+      handleCategoryChange();
+    };
+
+    function handleCategoryChange() {
+      const cat = document.getElementById('tableSelect').value;
+      const customContainer = document.getElementById('customNameContainer');
+      if (cat === "2" || cat === "3") {
+        customContainer.style.display = "block";
+      } else {
+        customContainer.style.display = "none";
+        document.getElementById('customNameInput').value = "";
+      }
+    }
+
+    function loadCountries() {
+      const a1 = document.getElementById('author1');
+      const a2 = document.getElementById('author2');
+      const a3 = document.getElementById('author3');
+      const dataList = document.getElementById('countryDataList');
+      
+      a1.placeholder = "Loading from ROLL CALL...";
+      a2.placeholder = "Loading from ROLL CALL...";
+      a3.placeholder = "Loading from ROLL CALL...";
+      dataList.innerHTML = "";
+      
+      google.script.run
+        .withSuccessHandler(function(countries) {
+          dataList.innerHTML = "";
+          if (!countries || countries.length === 0) {
+            a1.placeholder = "No countries found";
+            a2.placeholder = "No countries found";
+            a3.placeholder = "No countries found";
+            return;
+          }
+          a1.placeholder = "Type to search Author 1...";
+          a2.placeholder = "Type to search Author 2...";
+          a3.placeholder = "Type to search Author 3...";
+          countries.forEach(function(c) {
+            dataList.innerHTML += `<option value="${c}">`;
+          });
+        })
+        .withFailureHandler(function(err) {
+          a1.placeholder = "Error loading countries";
+        })
+        .getCountriesForSession('ROLL CALL');
+    }
+
+    function handleUpload() {
+      const fileInput = document.getElementById('fileInput');
+      const tableNum = document.getElementById('tableSelect').value;
+      const customName = document.getElementById('customNameInput').value;
+      
+      const val1 = document.getElementById('author1').value.trim();
+      const val2 = document.getElementById('author2').value.trim();
+      const val3 = document.getElementById('author3').value.trim();
+      
+      const rawAuthors = [val1, val2, val3].filter(a => a !== "");
+      const authors = [...new Set(rawAuthors)];
+
+      if (authors.length === 0) {
+        alert("Please search and select at least Author 1.");
+        return;
+      }
+      if (authors.length > 3) {
+        alert("You can select a maximum of 3 authors.");
+        return;
+      }
+
+      if (!fileInput.files || fileInput.files.length === 0) {
+        alert("Please select a PDF file first.");
+        return;
+      }
+
+      const file = fileInput.files[0];
+      if (file.type !== "application/pdf" && !file.name.toLowerCase().endsWith(".pdf")) {
+        alert("Only PDF files are allowed.");
+        return;
+      }
+
+      const statusBox = document.getElementById('status');
+      const uploadBtn = document.getElementById('uploadBtn');
+
+      uploadBtn.disabled = true;
+      uploadBtn.innerText = "Uploading to Drive...";
+      statusBox.innerText = "Processing PDF file...";
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64Data = e.target.result.split(',')[1];
+        
+        google.script.run
+          .withSuccessHandler(function(msg) {
+            statusBox.innerText = msg;
+            uploadBtn.disabled = false;
+            uploadBtn.innerText = "Upload Document";
+            fileInput.value = "";
+            document.getElementById('customNameInput').value = "";
+          })
+          .withFailureHandler(function(err) {
+            statusBox.innerText = "Error uploading document.";
+            alert("Error: " + err.message);
+            uploadBtn.disabled = false;
+            uploadBtn.innerText = "Upload Document";
+          })
+          .saveDocumentRecord(tableNum, authors, base64Data, file.name, customName);
+      };
+      reader.readAsDataURL(file);
+    }
+  </script>
+</body>
+</html>
