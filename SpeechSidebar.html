@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    :root {
+      --navy: #0f172a;
+      --red: #d93025;
+      --border: #cbd5e1;
+      --bg: #f8fafc;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 15px; margin: 0; color: #1e293b; background: #ffffff; text-align: center; }
+    h3 { margin: 0 0 16px 0; color: var(--navy); font-size: 15px; border-bottom: 2px solid var(--navy); padding-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    
+    label { font-size: 11px; font-weight: bold; color: #475569; text-transform: uppercase; display: block; margin-top: 12px; margin-bottom: 4px; letter-spacing: 0.5px; text-align: left; }
+    select, input[type="text"] { width: 100%; padding: 9px; border: 1px solid var(--border); border-radius: 4px; font-size: 13px; background: var(--bg); font-weight: 600; color: var(--navy); box-sizing: border-box; }
+    select:focus, input[type="text"]:focus { outline: none; border-color: var(--navy); background: #fff; }
+    
+    #launchBtn { width: 100%; background: var(--red); color: white; padding: 14px; border: none; border-radius: 6px; font-weight: 800; font-size: 14px; cursor: pointer; margin-top: 20px; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: background 0.15s; }
+    #launchBtn:hover { background: #b32017; }
+    
+    #status { margin-top: 16px; font-size: 12px; font-weight: bold; color: #64748b; }
+  </style>
+</head>
+<body>
+
+  <h3>🎙️ Verbatim Recorder</h3>
+
+  <label>Step 1: Select Speech</label>
+  <select id="sessionSelect" onchange="handleSessionChange()">
+    <option value="GSL">GSL</option>
+    <option value="MOD 1">MOD 1</option>
+    <option value="MOD 2">MOD 2</option>
+    <option value="MOD 3">MOD 3</option>
+    <option value="MOD 4">MOD 4</option>
+    <option value="MOD 5">MOD 5</option>
+    <option value="MOD 6">MOD 6</option>
+    <option value="SELF-MODERATED CONSULTATION">SELF-MODERATED CONSULTATION</option>
+    <option value="SELF-MODERATED CONSULTATION 2">SELF-MODERATED CONSULTATION 2</option>
+  </select>
+
+  <!-- Sub-table dropdown hides automatically when MODs are selected -->
+  <div id="subTableContainer">
+    <label>Step 2: Select Sub-Table / Speech #</label>
+    <select id="tableSelect">
+      <option value="1">GSL 1</option>
+      <option value="2">GSL 2</option>
+      <option value="3">GSL 3</option>
+    </select>
+  </div>
+
+  <label id="speakerLabel">Step 3: Select the Speaker</label>
+  <!-- Searchable Input with Live Autocomplete Recommendations -->
+  <input type="text" id="countrySelect" list="countryDataList" placeholder="Type to search country..." autocomplete="off">
+  <datalist id="countryDataList"></datalist>
+
+  <button id="launchBtn" onclick="openRecorderPopOut()">Open Recorder Window</button>
+
+  <div id="status">Ready to launch recorder.</div>
+
+  <script>
+    window.onload = function() { 
+      handleSessionChange(); 
+    };
+
+    function handleSessionChange() {
+      const session = document.getElementById('sessionSelect').value;
+      const subTableContainer = document.getElementById('subTableContainer');
+      const speakerLabel = document.getElementById('speakerLabel');
+      const countryInput = document.getElementById('countrySelect');
+      
+      // Since both start with "SELF", this logic automatically supports the 2nd one
+      if (session.startsWith('MOD') || session.startsWith('SELF')) {
+        subTableContainer.style.display = 'none';
+        speakerLabel.innerText = 'Step 2: Select the Speaker';
+      } else {
+        subTableContainer.style.display = 'block';
+        speakerLabel.innerText = 'Step 3: Select the Speaker';
+      }
+      
+      countryInput.value = ""; // Clears input on session change
+      loadCountries();
+    }
+
+    function loadCountries() {
+      const session = document.getElementById('sessionSelect').value;
+      const countryInput = document.getElementById('countrySelect');
+      const dataList = document.getElementById('countryDataList');
+      
+      countryInput.placeholder = "Loading from ROLL CALL...";
+      dataList.innerHTML = "";
+      
+      google.script.run
+        .withSuccessHandler(function(countries) {
+          dataList.innerHTML = "";
+          if (!countries || countries.length === 0) {
+            countryInput.placeholder = "No countries found";
+            return;
+          }
+          countryInput.placeholder = "Type to search country...";
+          countries.forEach(function(c) {
+            dataList.innerHTML += `<option value="${c}">`;
+          });
+        })
+        .withFailureHandler(function(err) {
+          countryInput.placeholder = "Error loading countries";
+        })
+        .getCountriesForSession(session);
+    }
+
+    // Listen for data coming back from the pop-out window
+    window.addEventListener('message', function(e) {
+      if (e.data && e.data.type === 'SPEECH_DATA') {
+        document.getElementById('status').innerText = 'Saving verbatim to ' + e.data.tableText + '...';
+        
+        google.script.run
+          .withSuccessHandler(function(msg) {
+            document.getElementById('status').innerText = msg;
+          })
+          .withFailureHandler(function(err) {
+            document.getElementById('status').innerText = 'Error saving verbatim.';
+            alert("Error: " + err.message);
+          })
+          .saveSpeechRecord(e.data.session, e.data.table, e.data.country, e.data.base64, e.data.mimeType || 'audio/mp3', e.data.transcript);
+      }
+    });
+
+    // Launches the external pop-out window with built-in LAME.js MP3 Encoder
+    function openRecorderPopOut() {
+      const session = document.getElementById('sessionSelect').value;
+      const isModOrSelfMod = session.startsWith('MOD') || session.startsWith('SELF');
+      
+      const tableNum = isModOrSelfMod ? "1" : document.getElementById('tableSelect').value;
+      const tableText = isModOrSelfMod ? session + " Main Table" : document.getElementById('tableSelect').options[document.getElementById('tableSelect').selectedIndex].text.trim();
+      
+      const country = document.getElementById('countrySelect').value.trim();
+      if (!country) {
+        alert("Please search and select a speaker first.");
+        return;
+      }
+
+      // ADDED FIX: Escape single quotes for JavaScript injection
+      const safeCountryJS = country.replace(/'/g, "\\'");
+      
+      const popOutHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Recording: ${country} (${session} - ${tableText})</title>
+          <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></` + `script>
+          <style>
+            body { font-family: sans-serif; padding: 20px; text-align: center; background: #f8fafc; color: #0f172a; }
+            h2 { font-size: 17px; margin-bottom: 4px; color: #0f172a; }
+            h4 { font-size: 13px; color: #64748b; margin-top: 0; margin-bottom: 18px; }
+            .btn { padding: 12px 22px; border: none; border-radius: 6px; font-weight: bold; font-size: 13px; cursor: pointer; margin: 4px; text-transform: uppercase; transition: background 0.15s; }
+            #recBtn { background: #d93025; color: white; }
+            #recBtn:hover { background: #b32017; }
+            #stopBtn { background: #64748b; color: white; }
+            #stopBtn:hover { background: #475569; }
+            #pushBtn { background: #10b981; color: white; width: 100%; margin-top: 15px; display: none; font-size: 14px; padding: 14px; }
+            #pushBtn:hover { background: #059669; }
+            #status { margin: 14px 0; font-weight: bold; color: #475569; font-size: 13px; }
+            #transcriptBox { background: white; border: 1px solid #cbd5e1; padding: 12px; border-radius: 6px; min-height: 90px; max-height: 140px; overflow-y: auto; text-align: left; font-size: 13px; line-height: 1.4; text-transform: uppercase; color: #0f172a; }
+            audio { width: 100%; margin-top: 14px; display: none; }
+            .tag { font-size: 11px; background: #e2e8f0; color: #334155; padding: 3px 8px; border-radius: 10px; font-weight: bold; }
+          </style>
+        </head>
+        <body>
+          <h2>Verbatim Recorder: ${country}</h2>
+          <h4>${session} | ${tableText} <span class="tag">MP3 + EN-IN</span></h4>
+          
+          <div>
+            <button id="recBtn" class="btn" onclick="startRec()">Start Recording</button>
+            <button id="stopBtn" class="btn" onclick="stopRec()" disabled>Stop</button>
+          </div>
+          
+          <div id="status">Click Start Recording and speak into your mic.</div>
+          <div id="transcriptBox"><em>Live speech will appear here...</em></div>
+          <audio id="previewAudio" controls></audio>
+          <button id="pushBtn" class="btn" onclick="pushToSheet()">Save Verbatim to Sheet</button>
+
+          <` + `script>
+            let mediaRecorder; let audioChunks = []; let recordedBase64 = null;
+            let recognition; let finalTranscript = "";
+
+            if ('webkitSpeechRecognition' in window) {
+              recognition = new webkitSpeechRecognition();
+              recognition.lang = 'en-IN'; 
+              recognition.continuous = true; 
+              recognition.interimResults = true;
+              
+              recognition.onresult = (e) => {
+                let interim = "";
+                for (let i = e.resultIndex; i < e.results.length; ++i) {
+                  if (e.results[i].isFinal) finalTranscript += e.results[i][0].transcript + " ";
+                  else interim += e.results[i][0].transcript;
+                }
+                document.getElementById('transcriptBox').innerHTML = (finalTranscript + '<i style="color:#64748b;">' + interim + '</i>').toUpperCase();
+              };
+            }
+
+            function encodeToMP3(audioBuffer) {
+              const channels = audioBuffer.numberOfChannels;
+              const sampleRate = audioBuffer.sampleRate;
+              const mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, 128);
+              const mp3Data = [];
+              
+              const left = audioBuffer.getChannelData(0);
+              const right = channels > 1 ? audioBuffer.getChannelData(1) : left;
+              
+              const leftInt16 = new Int16Array(left.length);
+              const rightInt16 = new Int16Array(right.length);
+              for (let i = 0; i < left.length; i++) {
+                leftInt16[i] = Math.max(-1, Math.min(1, left[i])) * (left[i] < 0 ? 0x8000 : 0x7FFF);
+                if (channels > 1) {
+                  rightInt16[i] = Math.max(-1, Math.min(1, right[i])) * (right[i] < 0 ? 0x8000 : 0x7FFF);
+                }
+              }
+              
+              const sampleBlockSize = 1152;
+              for (let i = 0; i < leftInt16.length; i += sampleBlockSize) {
+                const leftChunk = leftInt16.subarray(i, i + sampleBlockSize);
+                let mp3buf;
+                if (channels > 1) {
+                  const rightChunk = rightInt16.subarray(i, i + sampleBlockSize);
+                  mp3buf = mp3encoder.encodeBuffer(leftChunk, rightChunk);
+                } else {
+                  mp3buf = mp3encoder.encodeBuffer(leftChunk);
+                }
+                if (mp3buf.length > 0) mp3Data.push(mp3buf);
+              }
+              
+              const mp3buf = mp3encoder.flush();
+              if (mp3buf.length > 0) mp3Data.push(new Int8Array(mp3buf));
+              
+              return new Blob(mp3Data, { type: 'audio/mp3' });
+            }
+
+            async function startRec() {
+              try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = []; recordedBase64 = null; finalTranscript = "";
+                document.getElementById('transcriptBox').innerHTML = "";
+                document.getElementById('previewAudio').style.display = "none";
+                document.getElementById('pushBtn').style.display = "none";
+                document.getElementById('status').innerText = "Recording in progress...";
+                if (recognition) recognition.start();
+                
+                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                
+                mediaRecorder.onstop = async () => {
+                  if (recognition) recognition.stop();
+                  document.getElementById('status').innerText = "Converting recording to MP3 format...";
+                  
+                  try {
+                    const rawBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                    const arrayBuffer = await rawBlob.arrayBuffer();
+                    const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                    
+                    const mp3Blob = encodeToMP3(audioBuffer);
+                    document.getElementById('previewAudio').src = URL.createObjectURL(mp3Blob);
+                    document.getElementById('previewAudio').style.display = "block";
+                    
+                    const reader = new FileReader();
+                    reader.readAsDataURL(mp3Blob);
+                    reader.onloadend = () => {
+                      recordedBase64 = reader.result.split(',')[1];
+                      document.getElementById('status').innerText = "MP3 Ready. Click save below.";
+                      document.getElementById('pushBtn').style.display = "block";
+                    };
+                  } catch (convErr) {
+                    alert("Error converting to MP3: " + convErr.message);
+                  }
+                };
+                
+                mediaRecorder.start();
+                document.getElementById('recBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+              } catch (err) {
+                alert("Microphone access denied. Please allow microphone access in browser settings.");
+              }
+            }
+
+            function stopRec() {
+              if (mediaRecorder && mediaRecorder.state !== "inactive") {
+                mediaRecorder.stop();
+                document.getElementById('recBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = true;
+              }
+            }
+
+            function pushToSheet() {
+              if (!recordedBase64) return;
+              const transcript = finalTranscript.trim() || document.getElementById('transcriptBox').innerText.trim();
+              document.getElementById('pushBtn').innerText = "Sending MP3 to AI...";
+              document.getElementById('pushBtn').disabled = true;
+              
+              window.opener.postMessage({
+                type: 'SPEECH_DATA',
+                session: '${session}',
+                table: '${tableNum}',
+                tableText: '${tableText}',
+                country: '${safeCountryJS}', // UPDATED FIX: Now uses the sanitized variable
+                base64: recordedBase64,
+                mimeType: 'audio/mp3',
+                transcript: transcript
+              }, '*');
+              
+              setTimeout(() => window.close(), 500);
+            }
+          </` + `script>
+        </body>
+        </html>
+      `;
+      
+      const win = window.open('', '_blank', 'width=450,height=580,top=100,left=100');
+      win.document.write(popOutHTML);
+      win.document.close();
+    }
+  </script>
+</body>
+</html>
