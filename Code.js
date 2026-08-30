@@ -1,8 +1,10 @@
 // ==========================================
 // CONFIGURATION: API KEYS & FOLDER IDS
 // ==========================================
-const GROQ_API_KEY = "YOUR_GROQ_API_KEY";
-const MAIN_CONFERENCE_FOLDER_ID = "YOUR_FOLDER_ID_HERE"; // Paste your Google Drive Conference Folder ID here
+// Keys are now securely stored in Apps Script Properties.
+// Go to Project Settings (gear icon) > Script Properties to set them.
+function getGroqApiKey() { return PropertiesService.getScriptProperties().getProperty('GROQ_API_KEY'); }
+function getMainConferenceFolderId() { return PropertiesService.getScriptProperties().getProperty('MAIN_CONFERENCE_FOLDER_ID'); }
 
 // Serves the HTML page to the user's browser
 function doGet() {
@@ -256,13 +258,14 @@ function getOrCreateSubFolder(parentFolder, folderName) {
 }
 
 function getMainConferenceFolder() {
-  if (!MAIN_CONFERENCE_FOLDER_ID || MAIN_CONFERENCE_FOLDER_ID === "YOUR_FOLDER_ID_HERE" || MAIN_CONFERENCE_FOLDER_ID.trim() === "") {
-    throw new Error("Missing Main Conference Folder ID! Please paste your Google Drive Folder ID into Code.gs.");
+  const folderId = getMainConferenceFolderId();
+  if (!folderId || folderId.trim() === "") {
+    throw new Error("Missing Main Conference Folder ID! Please add it to Project Settings > Script Properties.");
   }
   try {
-    return DriveApp.getFolderById(MAIN_CONFERENCE_FOLDER_ID.trim());
+    return DriveApp.getFolderById(folderId.trim());
   } catch (e) {
-    throw new Error("Invalid Main Conference Folder ID! Please check the ID in Code.gs. Error: " + e.message);
+    throw new Error("Invalid Main Conference Folder ID! Please check the ID in Script Properties. Error: " + e.message);
   }
 }
 
@@ -270,8 +273,9 @@ function getMainConferenceFolder() {
 // AI TRANSCRIPTION ENGINE (GROQ WHISPER-V3)
 // ==========================================
 function transcribeAudioGroq(audioBlob) {
-  if (!GROQ_API_KEY || GROQ_API_KEY.trim() === "") {
-    throw new Error("Missing Groq API Key! Please paste your key at the top of Code.gs.");
+  const apiKey = getGroqApiKey();
+  if (!apiKey || apiKey.trim() === "") {
+    throw new Error("Missing Groq API Key! Please add it to Project Settings > Script Properties.");
   }
 
   const url = "https://api.groq.com/openai/v1/audio/transcriptions";
@@ -288,7 +292,7 @@ function transcribeAudioGroq(audioBlob) {
   const options = {
     "method": "post",
     "headers": {
-      "Authorization": "Bearer " + GROQ_API_KEY
+      "Authorization": "Bearer " + apiKey
     },
     "payload": payload,
     "muteHttpExceptions": true
