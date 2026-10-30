@@ -1,6 +1,6 @@
 # Hinduja MUN 2026 - Chit & Management Portal
 
-A comprehensive Google Apps Script based web application and spreadsheet integration designed to manage a Model United Nations (MUN) committee. The portal facilitates digital chit-passing, AI-powered speech transcription, and automated document management.
+A comprehensive Google Apps Script based web application and spreadsheet integration designed to manage a Model United Nations (MUN) committee. The portal facilitates digital chit-passing, AI-powered speech transcription, and automated document management, all within the marksheet.
 
 ## Features
 
